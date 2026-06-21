@@ -1,4 +1,5 @@
 import asyncio
+import importlib.util
 from pathlib import Path
 import sys
 import types
@@ -45,6 +46,33 @@ def _install_fetch_stub():
 
     linkedin_public.fetch_public_linkedin_company_profile = fetch_public_linkedin_company_profile
     sys.modules["app.social.linkedin_public_scraper"] = linkedin_public
+
+    if importlib.util.find_spec("httpx") is None:
+        httpx = types.ModuleType("httpx")
+
+        class AsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return None
+
+            async def get(self, *args, **kwargs):
+                raise RuntimeError("httpx stub should not be called in offline unit tests")
+
+        httpx.AsyncClient = AsyncClient
+        sys.modules["httpx"] = httpx
+
+    llm_client = types.ModuleType("app.services.llm_client")
+
+    async def generate_json(*args, **kwargs):
+        return {}
+
+    llm_client.generate_json = generate_json
+    sys.modules["app.services.llm_client"] = llm_client
 
     bullmq = types.ModuleType("bullmq")
     bullmq.Worker = object
