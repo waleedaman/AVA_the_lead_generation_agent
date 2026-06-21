@@ -126,6 +126,18 @@ def _install_fetch_stub():
     database.get_db = get_db
     sys.modules["app.services.database"] = database
 
+    bson = types.ModuleType("bson")
+    bson_objectid = types.ModuleType("bson.objectid")
+
+    class ObjectId(str):
+        def __new__(cls, value="000000000000000000000000"):
+            return str.__new__(cls, str(value))
+
+    bson_objectid.ObjectId = ObjectId
+    bson.objectid = bson_objectid
+    sys.modules["bson"] = bson
+    sys.modules["bson.objectid"] = bson_objectid
+
 
 _install_fetch_stub()
 
