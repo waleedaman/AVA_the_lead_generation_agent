@@ -7,7 +7,7 @@ const LOG_FILE = resolve(LOG_DIR, 'api-service.jsonl');
 export function logApiEvent(event: string, data: Record<string, unknown> = {}) {
   try {
     mkdirSync(LOG_DIR, { recursive: true });
-    const safeData = sanitizeRecord(data);
+    const safeData = sanitizeForLog(data);
     appendFileSync(
       LOG_FILE,
       `${JSON.stringify({
@@ -23,7 +23,9 @@ export function logApiEvent(event: string, data: Record<string, unknown> = {}) {
   }
 }
 
-function sanitizeRecord(value: Record<string, unknown>): Record<string, unknown> {
+export function sanitizeForLog(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
   return sanitize(value) as Record<string, unknown>;
 }
 
@@ -37,7 +39,7 @@ function sanitize(value: unknown): unknown {
 
   const output: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(value)) {
-    if (isSensitiveKey(key)) {
+    if (isSensitiveKey(key) || isPiiKey(key)) {
       output[key] = '[redacted]';
     } else if (typeof raw === 'string' && raw.length > 4000) {
       output[key] = `${raw.slice(0, 4000)}\n[truncated]`;
@@ -50,4 +52,10 @@ function sanitize(value: unknown): unknown {
 
 function isSensitiveKey(key: string): boolean {
   return /password|token|secret|authorization|cookie|api[_-]?key|access[_-]?key|private[_-]?key/i.test(key);
+}
+
+function isPiiKey(key: string): boolean {
+  return /email|phone|linkedin|contact[_-]?name|first[_-]?name|last[_-]?name/i.test(
+    key,
+  );
 }

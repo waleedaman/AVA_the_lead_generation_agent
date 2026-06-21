@@ -41,3 +41,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local/private lead data. Use sample_companies.csv for public examples.
+clean_companies.csv

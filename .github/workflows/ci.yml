@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      LLM_LOG_ENABLED: "false"
+      LLM_LOG_REDACT: "true"
+      LINKEDIN_PUBLIC_SCRAPER_ENABLED: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: API tests
+        working-directory: apps/api
+        run: npm test
+
+      - name: API typecheck
+        working-directory: apps/api
+        run: npx tsc --noEmit
+
+      - name: API build
+        working-directory: apps/api
+        run: npm run build
+
+      - name: Web lint
+        working-directory: apps/web
+        run: npm run lint
+
+      - name: Web typecheck
+        working-directory: apps/web
+        run: npm run check-types
+
+      - name: Web build
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Worker unit tests
+        run: python -m unittest discover -s apps/ai-worker/tests
+
+      - name: Worker compile
+        run: python -m compileall apps/ai-worker/app

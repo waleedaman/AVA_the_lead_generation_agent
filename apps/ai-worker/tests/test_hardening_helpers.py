@@ -113,9 +113,40 @@ from app.main import _extraction_evidence, _usable_evidence
 from app.scoring.fit_score import calculate_fit_score
 from app.main import _draft_suppression_reason, _fallback_fact_type
 from app.campaign_context import matching_terms
+from app.crawler.url_safety import UnsafeUrlError, validate_public_http_url
 
 
 class HardeningHelperTests(unittest.TestCase):
+    def test_release_files_and_sample_data_are_present(self):
+        repo_root = WORKER_ROOT.parents[1]
+
+        self.assertTrue((repo_root / "LICENSE").exists())
+        self.assertIn("MIT License", (repo_root / "LICENSE").read_text(encoding="utf-8"))
+        self.assertTrue((repo_root / "sample_companies.csv").exists())
+        self.assertIn("clean_companies.csv", (repo_root / ".gitignore").read_text(encoding="utf-8"))
+        self.assertIn("human-in-the-loop", (repo_root / "README.md").read_text(encoding="utf-8").lower())
+
+    def test_url_safety_blocks_private_and_unsafe_targets(self):
+        blocked = [
+            "http://localhost",
+            "http://127.0.0.1",
+            "http://0.0.0.0",
+            "http://10.0.0.1",
+            "http://172.16.0.1",
+            "http://192.168.1.1",
+            "http://[::1]",
+            "http://169.254.169.254/latest/meta-data",
+            "file:///etc/passwd",
+        ]
+
+        for url in blocked:
+            with self.subTest(url=url):
+                with self.assertRaises(UnsafeUrlError):
+                    validate_public_http_url(url)
+
+    def test_url_safety_allows_public_ip_https(self):
+        self.assertEqual(validate_public_http_url("https://93.184.216.34"), "https://93.184.216.34")
+
     def test_keyword_matching_uses_boundaries_and_aliases(self):
         self.assertNotIn("CTO", detect_keywords("They work in multiple sectors.", ["CTO"]))
         self.assertIn("CTO", detect_keywords("The CTO leads engineering.", ["CTO"]))

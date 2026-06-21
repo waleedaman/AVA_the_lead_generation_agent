@@ -15,21 +15,34 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? 'http://localhost:3100',
   });
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.AVA_ALLOW_UNAUTHENTICATED_PUBLIC_ACCESS !== 'true'
+  ) {
+    logApiEvent('startup_warning', {
+      warning:
+        'AVA API has no authentication. Do not expose it publicly without adding auth and deployment hardening.',
+      releaseMode: process.env.AVA_PUBLIC_RELEASE_MODE ?? 'local-dev',
+    });
+  }
   app.use((req, res, next) => {
     const startedAt = Date.now();
     const requestId = `${startedAt}-${Math.random().toString(16).slice(2)}`;
     logApiEvent('request_start', {
       requestId,
       method: req.method,
-      url: req.originalUrl || req.url,
-      query: req.query,
-      body: req.body,
+      path: req.path || req.url,
+      queryKeys: Object.keys(req.query ?? {}),
+      bodyKeys:
+        req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)
+          ? Object.keys(req.body)
+          : [],
     });
     res.on('finish', () => {
       logApiEvent('request_finish', {
         requestId,
         method: req.method,
-        url: req.originalUrl || req.url,
+        path: req.path || req.url,
         statusCode: res.statusCode,
         durationMs: Date.now() - startedAt,
       });
