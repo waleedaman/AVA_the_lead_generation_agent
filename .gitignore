@@ -14,6 +14,11 @@ node_modules
 
 # Testing
 coverage
+__pycache__/
+*.pyc
+apps/ai-worker/logs/
+apps/api/logs/
+apps/web/logs/
 
 # Turbo
 .turbo

@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalEnv": ["API_LOG_DIR", "WEB_LOG_DIR", "AI_WORKER_LOG_DIR", "LLM_LOG_DIR"],
   "ui": "tui",
   "tasks": {
     "build": {
